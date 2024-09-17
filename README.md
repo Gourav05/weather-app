@@ -24,7 +24,7 @@ This microservice provides weather forecasts for a specified city and displays t
 
 #### Get Weather Forecast
 
-- **URL**: `/weather-app/{city}r`
+- **URL**: `/weather-app/{city}`
 - **Method**: `GET`
 - **Query Parameters**:
   - `city` (string): The city for which to get the weather forecast.

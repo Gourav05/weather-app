@@ -14,8 +14,13 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 
 @RestController
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = "${frontend.url}")
 public class WeatherController {
+
+
+    @Value("${frontend.url}")
+    private String frontendUrl;
+
 
     @Value("${openweathermap.api.url}")
     private String apiUrl;

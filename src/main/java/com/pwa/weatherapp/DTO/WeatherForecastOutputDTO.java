@@ -26,6 +26,7 @@ public class WeatherForecastOutputDTO {
         private double lowTemp;
         private String condition;
         private String warnings;
+        private String icon;
     }
 }
 

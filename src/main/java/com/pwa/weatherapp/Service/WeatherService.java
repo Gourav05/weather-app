@@ -1,18 +1,23 @@
 package com.pwa.weatherapp.Service;
 
+
 import ch.qos.logback.classic.Logger;
 import com.pwa.weatherapp.DTO.WeatherForecastOutputDTO;
 import com.pwa.weatherapp.DTO.WeatherResponseDTO;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class WeatherService {
@@ -37,11 +42,22 @@ public class WeatherService {
     private static final String WARN_WINDY = "It’s too windy, watch out! ";
     private static final String WARN_THUNDERSTORM = "Don’t step out! A Storm is brewing! ";
 
+    // In-memory cache
+    private final Map<String, CachedWeatherData> cache = new ConcurrentHashMap<>();
+
+    @Cacheable(value = "weather", key = "#city")
     public WeatherForecastOutputDTO getCityWeather(String city) {
         String url = String.format(urlParams, apiUrl, city, apiKey);
         WeatherForecastOutputDTO outputDTO = new WeatherForecastOutputDTO();
 
         logger.info("Fetching weather for city: " + city + " from URL: " + url);
+
+        // Check cache
+        CachedWeatherData cachedData = cache.get(city);
+        if (cachedData != null && cachedData.getTimestamp().isAfter(LocalDateTime.now().minusHours(1))) {
+            logger.info("Returning cached weather data for city: " + city);
+            return cachedData.getData();
+        }
 
         try {
             ResponseEntity<WeatherResponseDTO> response = restTemplate.getForEntity(url, WeatherResponseDTO.class);
@@ -55,7 +71,12 @@ public class WeatherService {
             }
 
             logger.info("Weather response fetched successfully for city: " + city);
-            return mapToOutputDTO(weatherResponse);
+            outputDTO = mapToOutputDTO(weatherResponse);
+
+            // Cache the data
+            cache.put(city, new CachedWeatherData(outputDTO, LocalDateTime.now()));
+
+            return outputDTO;
         } catch (HttpClientErrorException.NotFound e) {
             outputDTO.setStatus("Failed");
             outputDTO.setMessage("City not found: " + city);
@@ -90,13 +111,14 @@ public class WeatherService {
         for (int i = 0; i < 3; i++) {
             WeatherResponseDTO.WeatherData dayData = weatherResponse.getList().get(i * 8);
             WeatherForecastOutputDTO.DayForecast dayForecast = new WeatherForecastOutputDTO.DayForecast();
-
-            dayForecast.setDate(dayData.getDt_txt().split(" ")[0]);
+            dayForecast.setDate(dayData.getDt_txt());
             dayForecast.setHighTemp(dayData.getMain().getTemp_max());
             dayForecast.setLowTemp(dayData.getMain().getTemp_min());
-            dayForecast.setCondition(dayData.getWeather().get(0).getMain());
+            dayForecast.setCondition(dayData.getWeather().get(0).getDescription());
+            dayForecast.setIcon(dayData.getWeather().get(0).getIcon());
 
-            // Generate warnings based on weather conditions
+
+
             StringBuilder warnings = new StringBuilder();
             if (dayData.getMain().getTemp_max() > 40) {
                 warnings.append(WARN_SUNSCREEN);
@@ -117,5 +139,23 @@ public class WeatherService {
 
         outputDTO.setForecast(forecastList);
         return outputDTO;
+    }
+
+    private static class CachedWeatherData {
+        private final WeatherForecastOutputDTO data;
+        private final LocalDateTime timestamp;
+
+        public CachedWeatherData(WeatherForecastOutputDTO data, LocalDateTime timestamp) {
+            this.data = data;
+            this.timestamp = timestamp;
+        }
+
+        public WeatherForecastOutputDTO getData() {
+            return data;
+        }
+
+        public LocalDateTime getTimestamp() {
+            return timestamp;
+        }
     }
 }

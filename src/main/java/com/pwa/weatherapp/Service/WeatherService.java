@@ -36,13 +36,13 @@ public class WeatherService {
 
     private static final Logger logger = (Logger) LoggerFactory.getLogger(WeatherService.class);
 
-    // Warning message constants
+    
     private static final String WARN_SUNSCREEN = "Use sunscreen lotion. ";
     private static final String WARN_UMBRELLA = "Carry umbrella. ";
     private static final String WARN_WINDY = "It’s too windy, watch out! ";
     private static final String WARN_THUNDERSTORM = "Don’t step out! A Storm is brewing! ";
 
-    // In-memory cache
+    
     private final Map<String, CachedWeatherData> cache = new ConcurrentHashMap<>();
 
     @Cacheable(value = "weather", key = "#city")
@@ -52,7 +52,7 @@ public class WeatherService {
 
         logger.info("Fetching weather for city: " + city + " from URL: " + url);
 
-        // Check cache
+        
         CachedWeatherData cachedData = cache.get(city);
         if (cachedData != null && cachedData.getTimestamp().isAfter(LocalDateTime.now().minusHours(1))) {
             logger.info("Returning cached weather data for city: " + city);
@@ -73,7 +73,7 @@ public class WeatherService {
             logger.info("Weather response fetched successfully for city: " + city);
             outputDTO = mapToOutputDTO(weatherResponse);
 
-            // Cache the data
+            
             cache.put(city, new CachedWeatherData(outputDTO, LocalDateTime.now()));
 
             return outputDTO;
@@ -107,7 +107,7 @@ public class WeatherService {
 
         logger.info("Weather forecast fetched for: " + weatherResponse.getCity().getName());
 
-        // Extract forecast for the next 3 days (taking data at every 8th interval, assuming 3-hour intervals)
+        
         for (int i = 0; i < 3; i++) {
             WeatherResponseDTO.WeatherData dayData = weatherResponse.getList().get(i * 8);
             WeatherForecastOutputDTO.DayForecast dayForecast = new WeatherForecastOutputDTO.DayForecast();

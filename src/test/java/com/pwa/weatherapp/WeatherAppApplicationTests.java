@@ -41,13 +41,13 @@ class WeatherServiceTest {
 
     @Test
     void getCityWeather_APIError() {
-        // Arrange
+        
         when(restTemplate.getForEntity(anyString(), any())).thenThrow(new RuntimeException("API Error"));
 
-        // Act
+   
         WeatherForecastOutputDTO result = weatherService.getCityWeather("ErrorCity");
 
-        // Assert
+      
         assertNotNull(result);
         assertEquals("Failed", result.getStatus());
         assertTrue(result.getMessage().startsWith("An error occurred while fetching weather data"));
@@ -55,13 +55,13 @@ class WeatherServiceTest {
 
     @Test
     void getCityWeather_NullResponse() {
-        // Arrange
+       
         when(restTemplate.getForEntity(anyString(), any())).thenReturn(new ResponseEntity<>(null, HttpStatus.OK));
 
-        // Act
+        
         WeatherForecastOutputDTO result = weatherService.getCityWeather("NullCity");
 
-        // Assert
+       
         assertNotNull(result);
         assertEquals("Failed", result.getStatus());
         assertEquals("Weather data unavailable for city: NullCity", result.getMessage());
